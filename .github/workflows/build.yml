@@ -3,7 +3,8 @@ name: Build Executables
 on:
   push:
     tags:
-      - 'v*'
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
