@@ -1,45 +1,47 @@
-name: Build Executables
+name: Build Quotezzz
 
-on:
-  push:
-    branches:
-      - main  # Falls dein Branch 'master' heißt, ändere das hier in 'master'
-  workflow_dispatch: # Erlaubt dir, den Build manuell per Button zu starten
+on: [push, workflow_dispatch]
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        include:
-          - os: windows-latest
-            artifact_name: Quotezzz-Win.exe
-          - os: ubuntu-latest
-            artifact_name: Quotezzz-Linux
-          - os: macos-latest
-            artifact_name: Quotezzz-Mac
+        os: [windows-latest, macos-latest, ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
-        pip install -r requirements.txt
+        python -m pip install --upgrade pip
         pip install pyinstaller Pillow requests
+        # Falls du eine requirements.txt hast, wird sie hier genutzt:
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      shell: bash
 
     - name: Build with PyInstaller
       run: |
-        # WICHTIG: Ersetze 'main.py' am Ende der nächsten Zeile, falls dein Skript anders heißt!
-        pyinstaller --noconsole --onefile --add-data "background.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." --add-data "star.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." --name "${{ matrix.artifact_name }}" main.py
+        # Wir nutzen den universellen Trenner für Daten: unter Windows ; und unter Unix :
+        pyinstaller --noconsole --onefile \
+        --add-data "background.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." \
+        --add-data "star.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." \
+        --name "Quotezzz-${{ matrix.os }}" main.py
+      shell: bash
 
-    - name: Upload Artifacts
+    - name: Fix Linux Permissions
+      if: matrix.os == 'ubuntu-latest'
+      run: chmod +x dist/Quotezzz-ubuntu-latest
+
+    - name: Upload Finished Files
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.artifact_name }}-bundle
+        name: Quotezzz-Executable-${{ matrix.os }}
         path: dist/
