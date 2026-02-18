@@ -1,0 +1,45 @@
+name: Build Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: Quotezzz-Win.exe
+          - os: ubuntu-latest
+            artifact_name: Quotezzz-Linux
+          - os: macos-latest
+            artifact_name: Quotezzz-Mac
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build with PyInstaller
+      run: |
+        # --noconsole versteckt das schwarze CMD-Fenster
+        # --add-data fügt die Bilder hinzu (Syntax: Quelle;Ziel auf Win, Quelle:Ziel auf Unix)
+        pyinstaller --noconsole --onefile --add-data "background.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." --add-data "star.png${{ matrix.os == 'windows-latest' && ';' || ':' }}." --name "${{ matrix.artifact_name }}" main.py
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/
